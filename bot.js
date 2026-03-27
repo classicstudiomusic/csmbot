@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, EmbedBuilder, PermissionFlagsBits } = require("discord.js");
+const { Client, GatewayIntentBits, EmbedBuilder, PermissionFlagsBits, Partials } = require("discord.js");
 const fs = require("fs");
 const path = require("path");
 
@@ -8,8 +8,8 @@ const ADMIN_ROLE_NAME = "Admin";
 const ADMIN_USER_IDS = [
   "651784290475966494", // ← Ganti dengan User ID kamu
 ];
-const STATUS_CHANNEL_ID = "1487006957884932139"; // ← ID channel #bot-status di server
-const HEARTBEAT_HOURS = 12; // Kirim "masih aktif" setiap X jam (0 = nonaktif)
+const STATUS_CHANNEL_ID = "1487006957884932139";
+const HEARTBEAT_HOURS = 12;
 const DB_PATH = path.join(__dirname, "rental_db.json");
 const CHECK_INTERVAL_HOURS = 6;
 
@@ -34,6 +34,12 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.DirectMessageReactions,
+    GatewayIntentBits.DirectMessageTyping,
+  ],
+  partials: [
+    Partials.Channel,   // ← INI yang bikin DM bisa kebaca di discord.js v14
+    Partials.Message,
   ],
 });
 
@@ -392,17 +398,11 @@ client.on("messageCreate", async (message) => {
 });
 
 // ─── ON READY ─────────────────────────────────────────────────────────────────
-client.once("ready", () => {
+client.once("clientReady", () => {
   console.log(`✅ Bot online sebagai ${client.user.tag}`);
-
-  // Kirim notif online ke status channel
   sendStatusMessage("online");
-
-  // Mulai reminder checker
   checkReminders();
   setInterval(checkReminders, CHECK_INTERVAL_HOURS * 60 * 60 * 1000);
-
-  // Heartbeat (opsional)
   if (HEARTBEAT_HOURS > 0) {
     setInterval(() => sendStatusMessage("heartbeat"), HEARTBEAT_HOURS * 60 * 60 * 1000);
   }
