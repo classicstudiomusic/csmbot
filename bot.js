@@ -8,7 +8,7 @@ const ADMIN_ROLE_NAME = "Admin";
 const ADMIN_USER_IDS = [
   "651784290475966494", // ← Ganti dengan User ID kamu
 ];
-const STATUS_CHANNEL_ID = "1487006957884932139";
+const STATUS_CHANNEL_ID = "1487070338536833044";
 const FALLBACK_CHANNEL_ID = "1487006957884932139"; // ← Ganti! Channel server untuk notifikasi jika DM gagal
 const HEARTBEAT_HOURS = 12;
 const DB_PATH = path.join(__dirname, "rental_db.json");
