@@ -3,7 +3,7 @@ const fs = require("fs");
 const path = require("path");
 
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
-const TOKEN = "YOUR_BOT_TOKEN_HERE";
+const TOKEN = process.env.TOKEN || "YOUR_BOT_TOKEN_HERE";
 const ADMIN_ROLE_NAME = "Admin";
 const ADMIN_USER_IDS = [
   "651784290475966494", // ← Ganti dengan User ID kamu
