@@ -6,9 +6,9 @@ const path = require("path");
 const TOKEN = "YOUR_BOT_TOKEN_HERE";
 const ADMIN_ROLE_NAME = "Admin";
 const ADMIN_USER_IDS = [
-  "YOUR_USER_ID_HERE", // ← Ganti dengan User ID kamu
+  "651784290475966494", // ← Ganti dengan User ID kamu
 ];
-const STATUS_CHANNEL_ID = "YOUR_CHANNEL_ID_HERE"; // ← ID channel #bot-status di server
+const STATUS_CHANNEL_ID = "1487006957884932139"; // ← ID channel #bot-status di server
 const HEARTBEAT_HOURS = 12; // Kirim "masih aktif" setiap X jam (0 = nonaktif)
 const DB_PATH = path.join(__dirname, "rental_db.json");
 const CHECK_INTERVAL_HOURS = 6;
