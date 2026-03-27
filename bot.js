@@ -9,6 +9,7 @@ const ADMIN_USER_IDS = [
   "651784290475966494", // ← Ganti dengan User ID kamu
 ];
 const STATUS_CHANNEL_ID = "1487006957884932139";
+const FALLBACK_CHANNEL_ID = "ISI_ID_CHANNEL_NOTIFIKASI"; // ← Ganti! Channel server untuk notifikasi jika DM gagal
 const HEARTBEAT_HOURS = 12;
 const DB_PATH = path.join(__dirname, "rental_db.json");
 const CHECK_INTERVAL_HOURS = 6;
@@ -38,7 +39,7 @@ const client = new Client({
     GatewayIntentBits.DirectMessageTyping,
   ],
   partials: [
-    Partials.Channel,   // ← INI yang bikin DM bisa kebaca di discord.js v14
+    Partials.Channel,
     Partials.Message,
   ],
 });
@@ -66,16 +67,46 @@ function daysUntil(dateStr) {
   return Math.round((target - now) / (1000 * 60 * 60 * 24));
 }
 
-// ─── SEND DM ──────────────────────────────────────────────────────────────────
-async function sendDM(userId, embed) {
+// ─── SEND DM (dengan fallback ke channel server) ──────────────────────────────
+// Return value:
+//   true     = DM berhasil
+//   "fallback" = DM gagal, tapi berhasil kirim ke channel server
+//   false    = keduanya gagal
+async function sendDM(userId, embed, fallbackNote = null) {
+  // Coba kirim DM dulu
   try {
     const user = await client.users.fetch(userId);
     await user.send({ embeds: [embed] });
     return true;
   } catch {
-    console.log(`[WARN] Gagal DM ke user ${userId} — mungkin DM-nya ditutup.`);
-    return false;
+    console.log(`[WARN] Gagal DM ke user ${userId} — mencoba fallback channel.`);
   }
+
+  // Fallback: kirim ke channel server dengan mention
+  if (FALLBACK_CHANNEL_ID && FALLBACK_CHANNEL_ID !== "ISI_ID_CHANNEL_NOTIFIKASI") {
+    try {
+      const channel = await client.channels.fetch(FALLBACK_CHANNEL_ID);
+      if (channel) {
+        const note = fallbackNote
+          ? fallbackNote
+          : "Kamu punya notifikasi sewa lagu! (DM kamu tertutup, notifikasi dikirim di sini)";
+
+        await channel.send({
+          content: [
+            `<@${userId}> ${note}`,
+            `> ℹ️ Buka DM dari bot ini agar notifikasi berikutnya masuk langsung ke DM kamu:`,
+            `> **User Settings → Privacy & Safety → Allow direct messages from server members ✅**`,
+          ].join("\n"),
+          embeds: [embed],
+        });
+        return "fallback";
+      }
+    } catch (err) {
+      console.log(`[WARN] Fallback channel juga gagal: ${err.message}`);
+    }
+  }
+
+  return false;
 }
 
 // ─── STATUS CHANNEL ───────────────────────────────────────────────────────────
@@ -189,18 +220,28 @@ async function checkReminders() {
     const days = daysUntil(rental.expireDate);
 
     if (days === 3 && !rental.reminded3) {
-      const sent = await sendDM(rental.userId, buildReminderEmbed(rental, 3));
+      const sent = await sendDM(
+        rental.userId,
+        buildReminderEmbed(rental, 3),
+        "Sewa lagu kamu akan berakhir dalam 3 hari! Segera perpanjang."
+      );
       if (sent) {
         rental.reminded3 = true;
-        console.log(`[INFO] Reminder H-3 dikirim ke ${rental.username}`);
+        const via = sent === "fallback" ? "via channel (DM ditutup)" : "via DM";
+        console.log(`[INFO] Reminder H-3 dikirim ke ${rental.username} ${via}`);
       }
     }
 
     if (days === 1 && !rental.reminded1) {
-      const sent = await sendDM(rental.userId, buildReminderEmbed(rental, 1));
+      const sent = await sendDM(
+        rental.userId,
+        buildReminderEmbed(rental, 1),
+        "🚨 Sewa lagu kamu BERAKHIR BESOK! Segera hubungi admin untuk perpanjang."
+      );
       if (sent) {
         rental.reminded1 = true;
-        console.log(`[INFO] Reminder H-1 dikirim ke ${rental.username}`);
+        const via = sent === "fallback" ? "via channel (DM ditutup)" : "via DM";
+        console.log(`[INFO] Reminder H-1 dikirim ke ${rental.username} ${via}`);
       }
     }
   }
@@ -270,8 +311,20 @@ async function handleCommand(message, isDM) {
 
     saveDB(db);
 
-    const sent = await sendDM(targetId, buildConfirmEmbed(rental));
-    if (!sent) message.reply(`⚠️ DM ke **${targetUsername}** gagal — mungkin DM-nya ditutup.`);
+    // Kirim konfirmasi dengan fallback otomatis
+    const sent = await sendDM(
+      targetId,
+      buildConfirmEmbed(rental),
+      "Konfirmasi sewa lagu kamu sudah masuk! Cek detail di bawah ini."
+    );
+
+    if (!sent) {
+      message.reply(`⚠️ DM ke **${targetUsername}** gagal & channel fallback tidak tersedia atau belum dikonfigurasi.`);
+    } else if (sent === "fallback") {
+      message.reply(`⚠️ DM ke **${targetUsername}** gagal (DM-nya tertutup), notifikasi sudah dikirim ke channel server.`);
+    }
+    // Kalau sent === true, tidak perlu reply tambahan
+
     return;
   }
 
