@@ -1,0 +1,12 @@
+{
+  "name": "bot-sewa-lagu",
+  "version": "1.0.0",
+  "description": "Discord bot untuk konfirmasi sewa lagu & reminder langganan",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.0.0"
+  }
+}
